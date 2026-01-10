@@ -15,14 +15,14 @@ export interface SummaryRow {
 }
 
 export interface PriceConfig {
-  '2D': number;
-  '3D': number;
-  '4D': number;
-  '5D': number;
+  '2D': number | string;
+  '3D': number | string;
+  '4D': number | string;
+  '5D': number | string;
 }
 
 export interface DiscountConfig {
-  full: number;
-  diskon: number;
-  super: number;
+  full: number | string;
+  diskon: number | string;
+  super: number | string;
 }

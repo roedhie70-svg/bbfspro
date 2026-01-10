@@ -6,12 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>BebiaksPro Calculator</title>
     
-    <!-- PWA Meta Tags -->
+    <!-- PWA Meta Tags untuk Android & iOS -->
     <meta name="theme-color" content="#05070a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BebiaksPro">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="description" content="A high-performance professional permutation system.">
     
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2150/2150150.png">
     <link rel="manifest" href="manifest.webmanifest">
@@ -30,7 +31,6 @@
             overflow-x: hidden;
             overscroll-behavior-y: contain;
         }
-        /* Custom scrollbar for premium look */
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
         }
@@ -38,24 +38,20 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 20px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(34, 211, 238, 0.2);
-        }
         #root {
             min-height: 100vh;
         }
-        /* Smoothing out transitions */
         * {
-            transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            transition-duration: 150ms;
+            transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+    "react/": "https://esm.sh/react@^19.2.3/",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
 }
