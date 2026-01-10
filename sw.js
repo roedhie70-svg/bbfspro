@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'bebiaks-pro-v6.2';
+const CACHE_NAME = 'bebiaks-pro-apk-v1.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,7 +10,8 @@ const ASSETS_TO_CACHE = [
   './components/BBFSCalculator.tsx',
   './services/permutationEngine.ts',
   'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap'
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap',
+  'https://cdn-icons-png.flaticon.com/512/2150/2150150.png'
 ];
 
 self.addEventListener('install', (event) => {
