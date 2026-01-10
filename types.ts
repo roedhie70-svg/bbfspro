@@ -13,3 +13,16 @@ export interface SummaryRow {
   twin: number;
   total: number;
 }
+
+export interface PriceConfig {
+  '2D': number;
+  '3D': number;
+  '4D': number;
+  '5D': number;
+}
+
+export interface DiscountConfig {
+  full: number;
+  diskon: number;
+  super: number;
+}
