@@ -19,7 +19,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="mt-auto py-8 text-white text-[11px] text-center uppercase tracking-[0.6em] font-black opacity-[0.03] z-0 select-none hidden md:block">
-        BebiaksPro Integrated System • Professional Grade Logic
+        BebiaksPro Integrated System • Professional Grade Logic • Offline Mode
       </footer>
     </div>
   );

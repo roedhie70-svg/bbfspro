@@ -10,7 +10,9 @@ const dimensions: Dimension[] = ['2D', '3D', '4D', '5D'];
 const copyLimits = [25, 50, 100, 200, 400];
 
 const BBFSCalculator: React.FC = () => {
-  const [inputValue, setInputValue] = useState('11234');
+  const [inputValue, setInputValue] = useState('');
+  const [debouncedInput, setDebouncedInput] = useState('');
+  const [isCalculating, setIsCalculating] = useState(false);
   const [selectedDims, setSelectedDims] = useState<Dimension[]>(['2D', '3D', '4D', '5D']);
   const [showSingle, setShowSingle] = useState(true);
   const [showTwin, setShowTwin] = useState(true);
@@ -21,7 +23,6 @@ const BBFSCalculator: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState(0);
   const [copyLimit, setCopyLimit] = useState(25);
 
-  // SEPARATE PRICING STATES
   const [singlePrices, setSinglePrices] = useState<PriceConfig>({ 
     '2D': '0.1', '3D': '0.1', '4D': '0.1', '5D': '0.1' 
   });
@@ -29,13 +30,21 @@ const BBFSCalculator: React.FC = () => {
     '2D': '0.1', '3D': '0.1', '4D': '0.1', '5D': '0.1' 
   });
 
-  // UPDATED DISCOUNT RULES PER DIMENSION
   const [discounts, setDiscounts] = useState<DimensionDiscountConfig>({ 
     '2D': { diskon: '67', super: '34' },
     '3D': { diskon: '67', super: '34' },
     '4D': { diskon: '67', super: '34' },
     '5D': { diskon: '62', super: '0' } 
   });
+
+  useEffect(() => {
+    setIsCalculating(true);
+    const handler = setTimeout(() => {
+      setDebouncedInput(inputValue);
+      setIsCalculating(false);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [inputValue]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -49,7 +58,7 @@ const BBFSCalculator: React.FC = () => {
 
   useEffect(() => {
     setCopiedIndex(0);
-  }, [inputValue, selectedDims, showSingle, showTwin]);
+  }, [debouncedInput, selectedDims, showSingle, showTwin]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -70,7 +79,7 @@ const BBFSCalculator: React.FC = () => {
     if (window.navigator.vibrate) window.navigator.vibrate(50);
   };
 
-  const { uniqueDigits, repeatingDigits, counts } = useMemo(() => getDigitsData(inputValue), [inputValue]);
+  const { uniqueDigits, repeatingDigits, counts } = useMemo(() => getDigitsData(debouncedInput), [debouncedInput]);
 
   const resultsByDim = useMemo(() => {
     const data: Record<Dimension, { single: string[], twin: string[] }> = {
@@ -159,7 +168,6 @@ const BBFSCalculator: React.FC = () => {
     const base = count * priceNum * 1000;
     
     const dimDiscount = discounts[dim];
-    // Full Rate diset 100% secara internal karena input UI dihapus
     const fullVal = base; 
     const diskonVal = base * (safeParse(dimDiscount.diskon) / 100);
     const superVal = dim === '5D' ? 0 : base * (safeParse(dimDiscount.super) / 100);
@@ -180,10 +188,8 @@ const BBFSCalculator: React.FC = () => {
   return (
     <div className="w-full flex flex-col md:grid md:grid-cols-12 md:gap-8 p-2 md:p-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      {/* COLUMN 1: CONTROLS & INPUT */}
       <div className="md:col-span-4 flex flex-col space-y-4">
         
-        {/* HUD HEADER */}
         <div className="flex justify-between items-center opacity-30 px-1">
           <div className="flex items-center gap-1">
             <div className="relative w-1 h-1">
@@ -197,7 +203,6 @@ const BBFSCalculator: React.FC = () => {
           )}
         </div>
 
-        {/* BRANDING */}
         <div className="flex items-center gap-4 py-2 md:py-6">
           <div className="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center flex-shrink-0">
             <div className="absolute inset-1 rounded-xl border border-white/5 rotate-45 bg-gradient-to-br from-white/[0.08] to-transparent shadow-[0_0_20px_rgba(0,0,0,0.8)]"></div>
@@ -215,10 +220,12 @@ const BBFSCalculator: React.FC = () => {
           </div>
         </div>
 
-        {/* INPUT SECTION */}
         <div className="bg-[#0a0f18]/80 backdrop-blur-3xl p-4 md:p-6 rounded-[1.5rem] border border-white/5 shadow-2xl space-y-5">
           <div className="space-y-1 text-center">
-            <span className="text-[12px] font-black text-cyan-400 uppercase tracking-[0.8em] italic">BBFS</span>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-[12px] font-black text-cyan-400 uppercase tracking-[0.8em] italic">BBFS</span>
+              {isCalculating && <span className="text-[8px] font-black text-white/20 animate-pulse">PROCESSING...</span>}
+            </div>
             <div className="relative">
               <input 
                 type="text" 
@@ -226,7 +233,7 @@ const BBFSCalculator: React.FC = () => {
                 value={inputValue} 
                 onChange={(e) => setInputValue(e.target.value.replace(/\D/g, '').slice(0, 15))} 
                 className="bg-transparent text-center text-xl md:text-3xl font-black outline-none text-white tracking-[0.1em] w-full placeholder-white/5" 
-                placeholder="0123456789" 
+                placeholder="INPUT BBFS" 
               />
               {inputValue && <button onClick={handleClear} className="absolute right-0 top-1/2 -translate-y-1/2 text-white/10 hover:text-red-500 transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M6 18L18 6M6 6l12 12" /></svg></button>}
             </div>
@@ -242,13 +249,12 @@ const BBFSCalculator: React.FC = () => {
           </div>
         </div>
 
-        {/* ANALYTICS TABLE */}
         <div className="bg-[#0a0f18]/40 backdrop-blur-2xl rounded-[1.5rem] border border-white/5 overflow-hidden shadow-2xl">
           <div className="px-5 py-3 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
             <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Permutation Analytics</h3>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span className="text-[8px] font-black text-cyan-400 uppercase">Live</span>
+              <span className={`w-2 h-2 rounded-full ${isCalculating ? 'bg-amber-500 animate-bounce' : 'bg-cyan-400 animate-pulse'}`}></span>
+              <span className="text-[8px] font-black text-cyan-400 uppercase">{isCalculating ? 'Calculating...' : 'Live System'}</span>
             </div>
           </div>
           <table className="w-full text-center">
@@ -277,37 +283,45 @@ const BBFSCalculator: React.FC = () => {
         </div>
       </div>
 
-      {/* COLUMN 2: RESULTS & ACTIONS */}
       <div className="md:col-span-4 flex flex-col space-y-4 mt-6 md:mt-0">
         
-        {/* TERMINAL OUTPUT */}
         <div className="bg-black/90 backdrop-blur-3xl p-6 rounded-[2rem] border border-white/10 min-h-[300px] md:min-h-[480px] max-h-[600px] overflow-y-auto custom-scrollbar shadow-2xl text-center relative flex flex-col items-center">
-          <div className="sticky top-0 w-full flex justify-between items-center mb-4 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/5">
+          <div className="sticky top-0 w-full flex justify-between items-center mb-4 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/5 z-20">
             <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest italic">Matrix Output</span>
             <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{copiedIndex} / {resultList.length}</span>
           </div>
           
           <div className="text-cyan-400/90 font-mono text-[11px] md:text-[13px] font-bold break-all tracking-tight leading-relaxed py-4 w-full">
             {resultList.length > 0 ? (
-              resultList.map((item, idx) => (
-                <React.Fragment key={idx}>
-                  <span className={idx < copiedIndex ? "text-emerald-500/30 line-through" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]"}>{item}</span>
-                  {idx < resultList.length - 1 && <span className="text-white/10 px-1 font-normal opacity-50">•</span>}
-                </React.Fragment>
-              ))
+              <>
+                {resultList.slice(0, 1000).map((item, idx) => (
+                  <React.Fragment key={idx}>
+                    <span className={idx < copiedIndex ? "text-emerald-500/30 line-through" : "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]"}>{item}</span>
+                    {idx < Math.min(resultList.length, 1000) - 1 && <span className="text-white/10 px-1 font-normal opacity-50">•</span>}
+                  </React.Fragment>
+                ))}
+                {resultList.length > 1000 && (
+                  <div className="mt-8 pt-4 border-t border-white/5 flex flex-col items-center gap-2">
+                    <span className="text-[10px] text-white/20 italic font-black uppercase tracking-widest">
+                      ... and {resultList.length - 1000} more sequences encrypted ...
+                    </span>
+                    <span className="text-[8px] text-cyan-500/40 uppercase font-black">
+                      Use "Copy All" to extract full matrix
+                    </span>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 space-y-4 opacity-20">
                 <div className="w-12 h-12 border-2 border-dashed border-white rounded-full animate-spin"></div>
-                <span className="text-[11px] uppercase font-black tracking-widest italic">Synchronizing Core...</span>
+                <span className="text-[11px] uppercase font-black tracking-widest italic">{isCalculating ? 'Computing Permutations...' : 'Synchronizing Core...'}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* COPY CONTROLS */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
-            {/* COPY LIMIT SELECTOR */}
             <div className="flex gap-1 justify-center bg-white/5 p-1 rounded-xl border border-white/5">
               {copyLimits.map(limit => (
                 <button 
@@ -321,22 +335,20 @@ const BBFSCalculator: React.FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={handleCopyNext} disabled={copiedIndex >= resultList.length || resultList.length === 0} className={`flex-[3] py-4 rounded-2xl font-black text-[11px] md:text-[12px] uppercase tracking-wider border transition-all transform active:scale-95 shadow-xl ${copiedIndex >= resultList.length && resultList.length > 0 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-500' : 'bg-cyan-600 text-white border-cyan-500 hover:bg-cyan-500'}`}>
+              <button onClick={handleCopyNext} disabled={copiedIndex >= resultList.length || resultList.length === 0 || isCalculating} className={`flex-[3] py-4 rounded-2xl font-black text-[11px] md:text-[12px] uppercase tracking-wider border transition-all transform active:scale-95 shadow-xl ${copiedIndex >= resultList.length && resultList.length > 0 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-500' : 'bg-cyan-600 text-white border-cyan-500 hover:bg-cyan-500 disabled:opacity-50'}`}>
                 {copiedIndex >= resultList.length && resultList.length > 0 ? '✓ SEQUENCE COMPLETE' : `COPY NEXT ${copyLimit} (${Math.min(copyLimit, resultList.length - copiedIndex)})`}
               </button>
               <button onClick={() => setCopiedIndex(0)} className="flex-1 py-4 rounded-2xl font-black text-[11px] uppercase tracking-wider border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 active:scale-95 transition-all">RESET</button>
             </div>
           </div>
-          <button onClick={handleCopyAll} disabled={resultList.length === 0} className="w-full py-5 rounded-2xl font-black text-[14px] md:text-[16px] tracking-[0.1em] transition-all bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white shadow-2xl active:scale-95 disabled:opacity-20 hover:brightness-110 flex items-center justify-center gap-2">
-            {copyFeedback === 'COPIED ALL' ? '✓ All Copied to Clipboard' : 'Copy All'}
+          <button onClick={handleCopyAll} disabled={resultList.length === 0 || isCalculating} className="w-full py-5 rounded-2xl font-black text-[14px] md:text-[16px] tracking-[0.1em] transition-all bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white shadow-2xl active:scale-95 disabled:opacity-20 hover:brightness-110 flex items-center justify-center gap-2">
+            {copyFeedback === 'COPIED ALL' ? '✓ All Copied to Clipboard' : 'Copy All Matrix'}
           </button>
         </div>
       </div>
 
-      {/* COLUMN 3: BREAKDOWNS */}
       <div className="md:col-span-4 flex flex-col space-y-4 mt-6 md:mt-0">
         <div className="space-y-4">
-          {/* SINGLE MODE BREAKDOWN */}
           <div className="bg-[#0a0f18]/60 backdrop-blur-3xl rounded-[1.5rem] border border-white/5 overflow-hidden shadow-xl">
             <div className="px-4 py-3 border-b border-white/5 flex flex-col bg-white/[0.03] space-y-4">
               <div className="flex justify-between items-center">
@@ -344,7 +356,6 @@ const BBFSCalculator: React.FC = () => {
                 <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_cyan]"></div>
               </div>
               
-              {/* PRICING & DISCOUNT PARAMETERS FOR SINGLE MODE */}
               <div className="space-y-3">
                 {dimensions.map(dim => (
                   <div key={`s-row-${dim}`} className="grid grid-cols-4 gap-2 items-center">
@@ -399,7 +410,6 @@ const BBFSCalculator: React.FC = () => {
             </table>
           </div>
 
-          {/* TWIN MODE BREAKDOWN */}
           <div className="bg-[#0a0f18]/60 backdrop-blur-3xl rounded-[1.5rem] border border-white/5 overflow-hidden shadow-xl">
             <div className="px-4 py-3 border-b border-white/5 flex flex-col bg-white/[0.03] space-y-4">
               <div className="flex justify-between items-center">
@@ -407,7 +417,6 @@ const BBFSCalculator: React.FC = () => {
                 <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_orange]"></div>
               </div>
 
-              {/* PRICING & DISCOUNT PARAMETERS FOR TWIN MODE */}
               <div className="space-y-3">
                 {dimensions.map(dim => (
                   <div key={`t-row-${dim}`} className="grid grid-cols-4 gap-2 items-center">
@@ -464,7 +473,7 @@ const BBFSCalculator: React.FC = () => {
         </div>
       </div>
 
-      <footer className="md:hidden text-center pt-8 pb-4 opacity-10"><p className="text-[7px] text-white font-black uppercase tracking-[0.4em]">Integrated Logic Engine V10.0 (Global System)</p></footer>
+      <footer className="md:hidden text-center pt-8 pb-4 opacity-10"><p className="text-[7px] text-white font-black uppercase tracking-[0.4em]">Integrated Logic Engine V12.0 (Pure Offline)</p></footer>
     </div>
   );
 };
