@@ -4,9 +4,10 @@ import {
   getSinglePermutations, 
   getTwinPermutations 
 } from '../services/permutationEngine';
-import { Dimension, SummaryRow, PriceConfig, DiscountConfig } from '../types';
+import { Dimension, SummaryRow, PriceConfig, DiscountConfig, DimensionDiscountConfig } from '../types';
 
 const dimensions: Dimension[] = ['2D', '3D', '4D', '5D'];
+const copyLimits = [25, 50, 100, 200, 400];
 
 const BBFSCalculator: React.FC = () => {
   const [inputValue, setInputValue] = useState('11234');
@@ -18,17 +19,22 @@ const BBFSCalculator: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
   const [copiedIndex, setCopiedIndex] = useState(0);
+  const [copyLimit, setCopyLimit] = useState(25);
 
-  const [prices, setPrices] = useState<PriceConfig>({ 
-    '2D': '0.1', 
-    '3D': '0.1', 
-    '4D': '0.1', 
-    '5D': '0.1' 
+  // SEPARATE PRICING STATES
+  const [singlePrices, setSinglePrices] = useState<PriceConfig>({ 
+    '2D': '0.1', '3D': '0.1', '4D': '0.1', '5D': '0.1' 
   });
-  const [discounts, setDiscounts] = useState<DiscountConfig>({ 
-    full: '100', 
-    diskon: '64', 
-    super: '34' 
+  const [twinPrices, setTwinPrices] = useState<PriceConfig>({ 
+    '2D': '0.1', '3D': '0.1', '4D': '0.1', '5D': '0.1' 
+  });
+
+  // UPDATED DISCOUNT RULES PER DIMENSION
+  const [discounts, setDiscounts] = useState<DimensionDiscountConfig>({ 
+    '2D': { diskon: '67', super: '34' },
+    '3D': { diskon: '67', super: '34' },
+    '4D': { diskon: '67', super: '34' },
+    '5D': { diskon: '62', super: '0' } 
   });
 
   useEffect(() => {
@@ -113,7 +119,7 @@ const BBFSCalculator: React.FC = () => {
   const handleCopyNext = useCallback(() => {
     if (resultList.length === 0 || copiedIndex >= resultList.length) return;
     
-    const limit = 25;
+    const limit = copyLimit;
     const end = Math.min(copiedIndex + limit, resultList.length);
     const chunk = resultList.slice(copiedIndex, end);
     const textToCopy = chunk.join('*');
@@ -124,7 +130,7 @@ const BBFSCalculator: React.FC = () => {
       if (window.navigator.vibrate) window.navigator.vibrate(30);
       setTimeout(() => setCopyFeedback(null), 1500);
     });
-  }, [resultList, copiedIndex]);
+  }, [resultList, copiedIndex, copyLimit]);
 
   const handleCopyAll = useCallback(() => {
     if (resultList.length === 0) return;
@@ -147,13 +153,28 @@ const BBFSCalculator: React.FC = () => {
     return new Intl.NumberFormat('id-ID').format(Math.round(val));
   };
 
-  const calculateBreakdown = (count: number, dim: Dimension) => {
-    const priceNum = safeParse(prices[dim]);
+  const calculateBreakdown = (count: number, dim: Dimension, mode: 'single' | 'twin') => {
+    const priceMap = mode === 'single' ? singlePrices : twinPrices;
+    const priceNum = safeParse(priceMap[dim]);
     const base = count * priceNum * 1000;
-    const fullVal = base * (safeParse(discounts.full) / 100);
-    const diskonVal = base * (safeParse(discounts.diskon) / 100);
-    const superVal = base * (safeParse(discounts.super) / 100);
+    
+    const dimDiscount = discounts[dim];
+    // Full Rate diset 100% secara internal karena input UI dihapus
+    const fullVal = base; 
+    const diskonVal = base * (safeParse(dimDiscount.diskon) / 100);
+    const superVal = dim === '5D' ? 0 : base * (safeParse(dimDiscount.super) / 100);
+    
     return { full: fullVal, diskon: diskonVal, super: superVal, total: fullVal + diskonVal + superVal };
+  };
+
+  const handleDiscountChange = (dim: Dimension, field: keyof DiscountConfig, value: string) => {
+    setDiscounts(prev => ({
+      ...prev,
+      [dim]: {
+        ...prev[dim],
+        [field]: value.replace(/[^0-9.,]/g, '')
+      }
+    }));
   };
 
   return (
@@ -199,7 +220,14 @@ const BBFSCalculator: React.FC = () => {
           <div className="space-y-1 text-center">
             <span className="text-[12px] font-black text-cyan-400 uppercase tracking-[0.8em] italic">BBFS</span>
             <div className="relative">
-              <input type="text" inputMode="numeric" value={inputValue} onChange={(e) => setInputValue(e.target.value.replace(/\D/g, '').slice(0, 10))} className="bg-transparent text-center text-4xl md:text-5xl font-black outline-none text-white tracking-[0.1em] w-full placeholder-white/5" placeholder="01234" />
+              <input 
+                type="text" 
+                inputMode="numeric" 
+                value={inputValue} 
+                onChange={(e) => setInputValue(e.target.value.replace(/\D/g, '').slice(0, 15))} 
+                className="bg-transparent text-center text-xl md:text-3xl font-black outline-none text-white tracking-[0.1em] w-full placeholder-white/5" 
+                placeholder="0123456789" 
+              />
               {inputValue && <button onClick={handleClear} className="absolute right-0 top-1/2 -translate-y-1/2 text-white/10 hover:text-red-500 transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M6 18L18 6M6 6l12 12" /></svg></button>}
             </div>
           </div>
@@ -214,30 +242,38 @@ const BBFSCalculator: React.FC = () => {
           </div>
         </div>
 
-        {/* FINANCIAL CONFIG */}
-        <div className="bg-[#0a0f18]/60 backdrop-blur-3xl p-5 md:p-6 rounded-[1.5rem] border border-white/5 shadow-xl space-y-5">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.1em]">Pricing Parameters</h4>
-              <span className="text-[9px] font-black text-cyan-500/80 uppercase">Unit: x 1.000</span>
+        {/* ANALYTICS TABLE */}
+        <div className="bg-[#0a0f18]/40 backdrop-blur-2xl rounded-[1.5rem] border border-white/5 overflow-hidden shadow-2xl">
+          <div className="px-5 py-3 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
+            <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Permutation Analytics</h3>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span className="text-[8px] font-black text-cyan-400 uppercase">Live</span>
             </div>
-            <div className="grid grid-cols-4 gap-3">
-              {dimensions.map(dim => (
-                <div key={dim} className="space-y-1.5">
-                  <label className="block text-[9px] font-black text-white/20 uppercase text-center">{dim}</label>
-                  <input type="text" inputMode="decimal" value={prices[dim]} onChange={(e) => setPrices(prev => ({ ...prev, [dim]: e.target.value.replace(/[^0-9.,]/g, '') }))} className="w-full bg-[#05070a]/50 border border-white/10 rounded-xl py-2 text-center text-[12px] font-black text-white outline-none focus:border-cyan-500/50 transition-all" />
-                </div>
+          </div>
+          <table className="w-full text-center">
+            <thead>
+              <tr className="text-[9px] text-white/20 font-black uppercase border-b border-white/5 bg-black/20">
+                <th className="py-3">Mode</th><th className="py-3">Single</th><th className="py-3">Twin</th><th className="py-3 text-cyan-500">Total</th>
+              </tr>
+            </thead>
+            <tbody className="text-[11px] md:text-[12px]">
+              {summaryData.map((row) => (
+                <tr key={row.type} className={`transition-all border-b border-white/[0.02] ${selectedDims.includes(row.type) ? 'bg-white/[0.03]' : 'opacity-10 scale-95'}`}>
+                  <td className="py-2.5 font-black text-white italic">{row.type}</td>
+                  <td className="py-2.5 font-medium text-white/40">{row.single}</td>
+                  <td className="py-2.5 font-medium text-white/40">{row.twin}</td>
+                  <td className="py-2.5 font-black text-cyan-400">{row.total}</td>
+                </tr>
               ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {[{l:'Full Rate',k:'full',c:'red'},{l:'Discount',k:'diskon',c:'blue'},{l:'Super',k:'super',c:'orange'}].map(i => (
-              <div key={i.k} className="relative group">
-                <input type="text" inputMode="decimal" value={discounts[i.k as keyof DiscountConfig]} onChange={(e) => setDiscounts(prev => ({ ...prev, [i.k]: e.target.value.replace(/[^0-9.,]/g, '') }))} className={`w-full bg-${i.c}-500/5 border border-${i.c}-500/10 rounded-xl py-3 text-center text-[12px] font-black text-${i.c}-400 outline-none focus:ring-1 ring-${i.c}-500/30 transition-all`} />
-                <span className={`absolute -top-2 left-1/2 -translate-x-1/2 px-2 bg-[#0a0f18] text-[8px] font-black text-${i.c}-500 uppercase whitespace-nowrap`}>{i.l}</span>
-              </div>
-            ))}
-          </div>
+            </tbody>
+            <tfoot>
+              <tr className="bg-white/[0.02] border-t border-white/5">
+                <td colSpan={3} className="py-4 text-left pl-6 font-black text-white/30 uppercase text-[10px] tracking-widest">Global Aggregate</td>
+                <td className="py-4 text-xl font-black text-white pr-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{grandTotal}</td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
 
@@ -270,11 +306,26 @@ const BBFSCalculator: React.FC = () => {
 
         {/* COPY CONTROLS */}
         <div className="flex flex-col gap-3">
-          <div className="flex gap-3">
-            <button onClick={handleCopyNext} disabled={copiedIndex >= resultList.length || resultList.length === 0} className={`flex-[3] py-4 rounded-2xl font-black text-[11px] md:text-[12px] uppercase tracking-wider border transition-all transform active:scale-95 shadow-xl ${copiedIndex >= resultList.length && resultList.length > 0 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-500' : 'bg-cyan-600 text-white border-cyan-500 hover:bg-cyan-500'}`}>
-              {copiedIndex >= resultList.length && resultList.length > 0 ? '✓ SEQUENCE COMPLETE' : `COPY NEXT 25 (${Math.min(25, resultList.length - copiedIndex)})`}
-            </button>
-            <button onClick={() => setCopiedIndex(0)} className="flex-1 py-4 rounded-2xl font-black text-[11px] uppercase tracking-wider border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 active:scale-95 transition-all">RESET</button>
+          <div className="flex flex-col gap-2">
+            {/* COPY LIMIT SELECTOR */}
+            <div className="flex gap-1 justify-center bg-white/5 p-1 rounded-xl border border-white/5">
+              {copyLimits.map(limit => (
+                <button 
+                  key={limit} 
+                  onClick={() => setCopyLimit(limit)}
+                  className={`flex-1 py-1.5 text-[9px] font-black rounded-lg border transition-all ${copyLimit === limit ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_10px_rgba(34,211,238,0.4)]' : 'bg-transparent border-transparent text-white/20 hover:text-white/40'}`}
+                >
+                  {limit}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleCopyNext} disabled={copiedIndex >= resultList.length || resultList.length === 0} className={`flex-[3] py-4 rounded-2xl font-black text-[11px] md:text-[12px] uppercase tracking-wider border transition-all transform active:scale-95 shadow-xl ${copiedIndex >= resultList.length && resultList.length > 0 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-500' : 'bg-cyan-600 text-white border-cyan-500 hover:bg-cyan-500'}`}>
+                {copiedIndex >= resultList.length && resultList.length > 0 ? '✓ SEQUENCE COMPLETE' : `COPY NEXT ${copyLimit} (${Math.min(copyLimit, resultList.length - copiedIndex)})`}
+              </button>
+              <button onClick={() => setCopiedIndex(0)} className="flex-1 py-4 rounded-2xl font-black text-[11px] uppercase tracking-wider border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 active:scale-95 transition-all">RESET</button>
+            </div>
           </div>
           <button onClick={handleCopyAll} disabled={resultList.length === 0} className="w-full py-5 rounded-2xl font-black text-[14px] md:text-[16px] tracking-[0.1em] transition-all bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white shadow-2xl active:scale-95 disabled:opacity-20 hover:brightness-110 flex items-center justify-center gap-2">
             {copyFeedback === 'COPIED ALL' ? '✓ All Copied to Clipboard' : 'Copy All'}
@@ -282,50 +333,43 @@ const BBFSCalculator: React.FC = () => {
         </div>
       </div>
 
-      {/* COLUMN 3: ANALYTICS & BREAKDOWNS */}
+      {/* COLUMN 3: BREAKDOWNS */}
       <div className="md:col-span-4 flex flex-col space-y-4 mt-6 md:mt-0">
-        
-        {/* ANALYTICS TABLE */}
-        <div className="bg-[#0a0f18]/40 backdrop-blur-2xl rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
-          <div className="px-5 py-3 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
-            <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Permutation Analytics</h3>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span className="text-[8px] font-black text-cyan-400 uppercase">Live Processing</span>
-            </div>
-          </div>
-          <table className="w-full text-center">
-            <thead>
-              <tr className="text-[9px] text-white/20 font-black uppercase border-b border-white/5 bg-black/20">
-                <th className="py-3">Mode</th><th className="py-3">Single</th><th className="py-3">Twin</th><th className="py-3 text-cyan-500">Total</th>
-              </tr>
-            </thead>
-            <tbody className="text-[11px] md:text-[12px]">
-              {summaryData.map((row) => (
-                <tr key={row.type} className={`transition-all border-b border-white/[0.02] ${selectedDims.includes(row.type) ? 'bg-white/[0.03]' : 'opacity-10 scale-95'}`}>
-                  <td className="py-2.5 font-black text-white italic">{row.type}</td>
-                  <td className="py-2.5 font-medium text-white/40">{row.single}</td>
-                  <td className="py-2.5 font-medium text-white/40">{row.twin}</td>
-                  <td className="py-2.5 font-black text-cyan-400">{row.total}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-white/[0.02] border-t border-white/5">
-                <td colSpan={3} className="py-4 text-left pl-6 font-black text-white/30 uppercase text-[10px] tracking-widest">Global Aggregate</td>
-                <td className="py-4 text-xl font-black text-white pr-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{grandTotal}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        {/* BREAKDOWNS */}
         <div className="space-y-4">
+          {/* SINGLE MODE BREAKDOWN */}
           <div className="bg-[#0a0f18]/60 backdrop-blur-3xl rounded-[1.5rem] border border-white/5 overflow-hidden shadow-xl">
-            <div className="px-4 py-2 border-b border-white/5 flex justify-between bg-white/[0.03] items-center">
-              <h4 className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Single Mode Breakdown</h4>
-              <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_cyan]"></div>
+            <div className="px-4 py-3 border-b border-white/5 flex flex-col bg-white/[0.03] space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Single Mode Breakdown</h4>
+                <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_cyan]"></div>
+              </div>
+              
+              {/* PRICING & DISCOUNT PARAMETERS FOR SINGLE MODE */}
+              <div className="space-y-3">
+                {dimensions.map(dim => (
+                  <div key={`s-row-${dim}`} className="grid grid-cols-4 gap-2 items-center">
+                    <span className="text-[9px] font-black text-white/30 text-center italic">{dim} SGL</span>
+                    <div className="relative">
+                      <input type="text" inputMode="decimal" value={singlePrices[dim]} onChange={(e) => setSinglePrices(prev => ({ ...prev, [dim]: e.target.value.replace(/[^0-9.,]/g, '') }))} className="w-full bg-[#05070a]/50 border border-white/10 rounded-lg py-1 text-center text-[10px] font-black text-white outline-none focus:border-cyan-500/50" />
+                      <span className="absolute -top-2 left-1 text-[7px] font-black text-white/20 uppercase">PRC</span>
+                    </div>
+                    <div className="relative">
+                      <input type="text" inputMode="decimal" value={discounts[dim].diskon} onChange={(e) => handleDiscountChange(dim, 'diskon', e.target.value)} className="w-full bg-blue-500/5 border border-blue-500/10 rounded-lg py-1 text-center text-[10px] font-black text-blue-400 outline-none focus:border-blue-500/50" />
+                      <span className="absolute -top-2 left-1 text-[7px] font-black text-blue-500/40 uppercase">DSC%</span>
+                    </div>
+                    <div className="relative min-h-[1.5rem]">
+                      {dim !== '5D' && (
+                        <>
+                          <input type="text" inputMode="decimal" value={discounts[dim].super} onChange={(e) => handleDiscountChange(dim, 'super', e.target.value)} className="w-full bg-orange-500/5 border border-orange-500/10 rounded-lg py-1 text-center text-[10px] font-black text-orange-400 outline-none focus:border-orange-500/50" />
+                          <span className="absolute -top-2 left-1 text-[7px] font-black text-orange-400/40 uppercase">SPR%</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <table className="w-full text-[10px] md:text-[11px] text-center">
               <thead>
                 <tr className="text-white/20 font-black uppercase border-b border-white/5 bg-black/10">
@@ -340,13 +384,13 @@ const BBFSCalculator: React.FC = () => {
                 {dimensions.map(dim => {
                   const count = resultsByDim[dim].single.length;
                   if (!selectedDims.includes(dim) || !showSingle || count === 0) return null;
-                  const b = calculateBreakdown(count, dim);
+                  const b = calculateBreakdown(count, dim, 'single');
                   return (
                     <tr key={dim} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                       <td className="py-2.5 font-black italic text-cyan-400">{dim}</td>
                       <td className="text-red-500/80 font-bold">{formatValue(b.full)}</td>
                       <td className="text-blue-500/80 font-bold">{formatValue(b.diskon)}</td>
-                      <td className="text-orange-500/80 font-bold">{formatValue(b.super)}</td>
+                      <td className="text-orange-500/80 font-bold">{dim === '5D' ? '-' : formatValue(b.super)}</td>
                       <td className="font-black text-white">{formatValue(b.total)}</td>
                     </tr>
                   );
@@ -355,11 +399,40 @@ const BBFSCalculator: React.FC = () => {
             </table>
           </div>
 
+          {/* TWIN MODE BREAKDOWN */}
           <div className="bg-[#0a0f18]/60 backdrop-blur-3xl rounded-[1.5rem] border border-white/5 overflow-hidden shadow-xl">
-            <div className="px-4 py-2 border-b border-white/5 flex justify-between bg-white/[0.03] items-center">
-              <h4 className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Twin Mode Breakdown</h4>
-              <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_orange]"></div>
+            <div className="px-4 py-3 border-b border-white/5 flex flex-col bg-white/[0.03] space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Twin Mode Breakdown</h4>
+                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_orange]"></div>
+              </div>
+
+              {/* PRICING & DISCOUNT PARAMETERS FOR TWIN MODE */}
+              <div className="space-y-3">
+                {dimensions.map(dim => (
+                  <div key={`t-row-${dim}`} className="grid grid-cols-4 gap-2 items-center">
+                    <span className="text-[9px] font-black text-white/30 text-center italic">{dim} TWN</span>
+                    <div className="relative">
+                      <input type="text" inputMode="decimal" value={twinPrices[dim]} onChange={(e) => setTwinPrices(prev => ({ ...prev, [dim]: e.target.value.replace(/[^0-9.,]/g, '') }))} className="w-full bg-[#05070a]/50 border border-white/10 rounded-lg py-1 text-center text-[10px] font-black text-white outline-none focus:border-amber-500/50" />
+                      <span className="absolute -top-2 left-1 text-[7px] font-black text-white/20 uppercase">PRC</span>
+                    </div>
+                    <div className="relative">
+                      <input type="text" inputMode="decimal" value={discounts[dim].diskon} onChange={(e) => handleDiscountChange(dim, 'diskon', e.target.value)} className="w-full bg-blue-500/5 border border-blue-500/10 rounded-lg py-1 text-center text-[10px] font-black text-blue-400 outline-none focus:border-blue-500/50" />
+                      <span className="absolute -top-2 left-1 text-[7px] font-black text-blue-500/40 uppercase">DSC%</span>
+                    </div>
+                    <div className="relative min-h-[1.5rem]">
+                      {dim !== '5D' && (
+                        <>
+                          <input type="text" inputMode="decimal" value={discounts[dim].super} onChange={(e) => handleDiscountChange(dim, 'super', e.target.value)} className="w-full bg-orange-500/5 border border-orange-500/10 rounded-lg py-1 text-center text-[10px] font-black text-orange-400 outline-none focus:border-orange-500/50" />
+                          <span className="absolute -top-2 left-1 text-[7px] font-black text-orange-400/40 uppercase">SPR%</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <table className="w-full text-[10px] md:text-[11px] text-center">
               <thead>
                 <tr className="text-white/20 font-black uppercase border-b border-white/5 bg-black/10">
@@ -374,13 +447,13 @@ const BBFSCalculator: React.FC = () => {
                 {dimensions.map(dim => {
                   const count = resultsByDim[dim].twin.length;
                   if (!selectedDims.includes(dim) || !showTwin || count === 0) return null;
-                  const b = calculateBreakdown(count, dim);
+                  const b = calculateBreakdown(count, dim, 'twin');
                   return (
                     <tr key={dim} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                       <td className="py-2.5 font-black italic text-amber-400">{dim}</td>
                       <td className="text-red-500/80 font-bold">{formatValue(b.full)}</td>
                       <td className="text-blue-500/80 font-bold">{formatValue(b.diskon)}</td>
-                      <td className="text-orange-500/80 font-bold">{formatValue(b.super)}</td>
+                      <td className="text-orange-500/80 font-bold">{dim === '5D' ? '-' : formatValue(b.super)}</td>
                       <td className="font-black text-white">{formatValue(b.total)}</td>
                     </tr>
                   );
@@ -391,7 +464,7 @@ const BBFSCalculator: React.FC = () => {
         </div>
       </div>
 
-      <footer className="md:hidden text-center pt-8 pb-4 opacity-10"><p className="text-[7px] text-white font-black uppercase tracking-[0.4em]">Integrated Logic Engine V8.0 (Desktop Ready)</p></footer>
+      <footer className="md:hidden text-center pt-8 pb-4 opacity-10"><p className="text-[7px] text-white font-black uppercase tracking-[0.4em]">Integrated Logic Engine V10.0 (Global System)</p></footer>
     </div>
   );
 };

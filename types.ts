@@ -22,7 +22,8 @@ export interface PriceConfig {
 }
 
 export interface DiscountConfig {
-  full: number | string;
   diskon: number | string;
   super: number | string;
 }
+
+export type DimensionDiscountConfig = Record<Dimension, DiscountConfig>;
