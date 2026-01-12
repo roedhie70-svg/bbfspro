@@ -14,10 +14,6 @@
     <meta name="application-name" content="BebiaksPro">
     <meta name="msapplication-TileColor" content="#05070a">
     
-    <!-- Android specific tags -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#05070a">
-    
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2150/2150150.png">
     <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/2150/2150150.png" type="image/png">
     <link rel="manifest" href="manifest.webmanifest">
@@ -50,6 +46,15 @@
         * {
             transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(34, 211, 238, 0.2);
+        }
     </style>
 <script type="importmap">
 {
@@ -74,11 +79,6 @@
                 .catch(err => console.log('Kernel Error:', err));
             });
         }
-        
-        document.body.addEventListener('touchmove', function(e) {
-            if (e.target.closest('#root')) return;
-            e.preventDefault();
-        }, { passive: false });
     </script>
 </body>
 </html>
