@@ -1,7 +1,6 @@
-
 /**
  * BBFS Permutation Logic v2.1:
- * Respects input frequency. If user inputs "12366", '6' can appear at most twice in any result.
+ * Memproses input angka unik dan repetisi untuk menghasilkan permutasi Single dan Twin.
  */
 
 export const getDigitsData = (input: string) => {
@@ -15,7 +14,7 @@ export const getDigitsData = (input: string) => {
   return { uniqueDigits, repeatingDigits, counts };
 };
 
-// Single: Hanya menggunakan angka unik, masing-masing satu kali.
+// Single: Menggunakan angka unik, masing-masing satu kali per baris.
 export const getSinglePermutations = (pool: string[], k: number): string[] => {
   if (k <= 0 || k > pool.length) return [];
   const results: string[] = [];
@@ -40,7 +39,7 @@ export const getSinglePermutations = (pool: string[], k: number): string[] => {
   return results;
 };
 
-// Twin: Menggunakan angka sesuai frekuensi di input, tapi hanya mengambil yang mengandung repetisi.
+// Twin: Menggunakan angka sesuai frekuensi di input, khusus untuk hasil yang memiliki angka kembar.
 export const getTwinPermutations = (uniquePool: string[], repeatPool: string[], k: number, inputCounts?: Record<string, number>): string[] => {
   if (k <= 1 || repeatPool.length === 0 || !inputCounts) return [];
   
@@ -50,7 +49,6 @@ export const getTwinPermutations = (uniquePool: string[], repeatPool: string[], 
 
   const generate = (current: string[]) => {
     if (current.length === k) {
-      // Cek apakah ada angka yang berulang dalam kombinasi ini
       const check: Record<string, number> = {};
       let hasRepeat = false;
       for (const d of current) {
@@ -65,7 +63,6 @@ export const getTwinPermutations = (uniquePool: string[], repeatPool: string[], 
     }
 
     for (const d of uniquePool) {
-      // Pastikan penggunaan angka tidak melebihi stok di input
       if (currentCounts[d] < (inputCounts[d] || 0)) {
         currentCounts[d]++;
         current.push(d);
@@ -76,7 +73,6 @@ export const getTwinPermutations = (uniquePool: string[], repeatPool: string[], 
     }
   };
 
-  // Batasi kalkulasi untuk menghindari lag pada dimensi tinggi
   if (uniquePool.length > 0 && k <= 5) {
     generate([]);
   }

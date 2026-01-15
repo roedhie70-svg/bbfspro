@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -13,10 +14,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="BebiaksPro">
     <meta name="msapplication-TileColor" content="#05070a">
-    
-    <!-- Android specific tags -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#05070a">
     
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2150/2150150.png">
     <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/2150/2150150.png" type="image/png">
@@ -42,12 +39,48 @@
             height: 100%;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
         }
-        #root::-webkit-scrollbar {
-            display: none;
+        
+        /* HIDE SCROLLBARS & BUTTONS GLOBALLY */
+        #root::-webkit-scrollbar, 
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
+        
+        /* AGGRESSIVE REMOVAL OF SCROLLBAR ARROWS/BUTTONS */
+        ::-webkit-scrollbar-button {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        
+        #root, .scrollbar-hide {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
+
+        /* HIDE BROWSER INPUT CONTROLS */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none !important;
+            margin: 0 !important;
+        }
+        input[type=number] {
+            -moz-appearance: textfield !important;
+        }
+        select, button, input {
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            outline: none !important;
+        }
+        
+        /* PREVENT BROWSER TEXT OVERLAPS */
         * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
@@ -74,11 +107,6 @@
                 .catch(err => console.log('Kernel Error:', err));
             });
         }
-        
-        document.body.addEventListener('touchmove', function(e) {
-            if (e.target.closest('#root')) return;
-            e.preventDefault();
-        }, { passive: false });
     </script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 
 export type Dimension = '2D' | '3D' | '4D' | '5D';
+export type ViewType = 'BBFS' | 'DATA';
 
 export interface BBFSConfig {
   dimensions: Dimension[];
