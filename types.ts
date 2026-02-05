@@ -1,6 +1,15 @@
 
 export type Dimension = '2D' | '3D' | '4D' | '5D';
-export type ViewType = 'BBFS' | 'DATA';
+export type ViewType = 'BBFS' | 'DATA' | 'ARCHIVE' | 'MATRIX' | 'PREDICTION';
+
+export interface BBFSEntry {
+  id: string;
+  label: string;
+  digits: string;
+  date: string;
+  result?: string;
+  isCustom?: boolean;
+}
 
 export interface BBFSConfig {
   dimensions: Dimension[];
@@ -15,14 +24,21 @@ export interface SummaryRow {
   total: number;
 }
 
+export interface PriceDetail {
+  full: number | string;
+  diskon: number | string;
+  super: number | string;
+}
+
 export interface PriceConfig {
-  '2D': number | string;
-  '3D': number | string;
-  '4D': number | string;
-  '5D': number | string;
+  '2D': PriceDetail;
+  '3D': PriceDetail;
+  '4D': PriceDetail;
+  '5D': PriceDetail;
 }
 
 export interface DiscountConfig {
+  full: number | string;
   diskon: number | string;
   super: number | string;
 }

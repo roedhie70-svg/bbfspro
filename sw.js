@@ -1,4 +1,5 @@
-const CACHE_NAME = 'bebiaks-pro-cache-v2';
+
+const CACHE_NAME = 'bebiaks-pro-cache-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -34,7 +35,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignore non-get requests and analytics/extension calls
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
@@ -51,9 +51,7 @@ self.addEventListener('fetch', (event) => {
           cache.put(event.request, responseToCache);
         });
         return response;
-      }).catch(() => {
-        // Fallback or just let it fail if offline and not in cache
-      });
+      }).catch(() => {});
     })
   );
 });

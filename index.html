@@ -76,6 +76,22 @@
             appearance: none !important;
             outline: none !important;
         }
+
+        /* CALENDAR PICKER FIX: Bypass global appearance none for date inputs */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            display: block !important;
+            background: transparent !important;
+            bottom: 0 !important;
+            color: transparent !important;
+            cursor: pointer !important;
+            height: auto !important;
+            left: 0 !important;
+            position: absolute !important;
+            right: 0 !important;
+            top: 0 !important;
+            width: auto !important;
+            -webkit-appearance: none !important;
+        }
         
         /* PREVENT BROWSER TEXT OVERLAPS */
         * {
