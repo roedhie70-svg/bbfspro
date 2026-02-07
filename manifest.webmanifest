@@ -1,8 +1,8 @@
 {
-  "id": "com.bebiakspro.calculator",
+  "id": "com.bebiakspro.v2",
   "name": "BebiaksPro Calculator",
   "short_name": "BebiaksPro",
-  "description": "A high-performance PWA for professional lottery permutations, fully functional offline.",
+  "description": "Sistem Terintegrasi Kalkulator BBFS dan Pelacakan Matriks Profesional dengan algoritma Sentinel Lab v9.9.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#05070a",
@@ -10,29 +10,30 @@
   "orientation": "portrait",
   "categories": [
     "productivity",
-    "utilities"
+    "utilities",
+    "finance"
   ],
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2150/2150150.png",
+      "src": "https://img.icons8.com/fluency/144/pirate.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2150/2150150.png",
+      "src": "https://img.icons8.com/fluency/192/pirate.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2150/2150150.png",
+      "src": "https://img.icons8.com/fluency/512/pirate.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2150/2150150.png",
+      "src": "https://img.icons8.com/fluency/512/pirate.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -40,30 +41,42 @@
   ],
   "screenshots": [
     {
-      "src": "https://placehold.co/1080x1920/05070a/ffffff/png?text=BebiaksPro+Mobile+View",
+      "src": "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?auto=format&fit=crop&q=80&w=1080&h=1920",
       "sizes": "1080x1920",
-      "type": "image/png",
+      "type": "image/jpeg",
       "form_factor": "narrow",
-      "label": "Tampilan Kalkulator BBFS Mobile"
+      "label": "Tampilan Mobile BebiaksPro"
     },
     {
-      "src": "https://placehold.co/1920x1080/05070a/ffffff/png?text=BebiaksPro+Desktop+View",
+      "src": "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1920&h=1080",
       "sizes": "1920x1080",
-      "type": "image/png",
+      "type": "image/jpeg",
       "form_factor": "wide",
-      "label": "Tampilan Matrix Tracking Desktop"
+      "label": "Tampilan Desktop BebiaksPro"
     }
   ],
   "shortcuts": [
     {
       "name": "BBFS Calculator",
       "url": "./index.html?view=BBFS",
-      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2150/2150150.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "https://img.icons8.com/fluency/96/pirate.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Matrix Tracking",
       "url": "./index.html?view=MATRIX",
-      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2150/2150150.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "https://img.icons8.com/fluency/96/pirate.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
