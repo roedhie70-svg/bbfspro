@@ -1,15 +1,30 @@
-
 import { BBFSEntry } from './types';
 
 /**
  * DATABASE SISTEM BEBIAKSPRO
- * UPDATED: 05 FEBRUARI 2026 - JAM 01:15
+ * UPDATED: 06 FEBRUARI 2026 - JAM 23:00
  * LOGIKA BBFS: Angka Result diurutkan (Menjaga angka kembar)
  */
 const sortDigits = (res: string) => res.split('').sort().join('');
 
 export const SYSTEM_BASELINE: BBFSEntry[] = [
     // --- FEBRUARI 2026 ---
+    { id: 'h304', date: '2026-02-06', label: 'JAM 23', result: '5428', digits: '2458' },
+    { id: 'h303', date: '2026-02-06', label: 'JAM 22', result: '3775', digits: '3577' },
+    { id: 'h302', date: '2026-02-06', label: 'JAM 21', result: '31288', digits: '12388' },
+    { id: 'h301', date: '2026-02-06', label: 'JAM 19', result: '1895', digits: '1589' },
+    { id: 'h300', date: '2026-02-06', label: 'JAM 16', result: '0073', digits: '0037' },
+    { id: 'h299', date: '2026-02-06', label: 'JAM 15', result: '72232', digits: '22237' },
+    { id: 'h298', date: '2026-02-06', label: 'JAM 13', result: '1716', digits: '1167' },
+    { id: 'h297', date: '2026-02-06', label: 'JAM 01', result: '8047', digits: '0478' },
+    
+    { id: 'h296', date: '2026-02-05', label: 'JAM 23', result: '3507', digits: '0357' },
+    { id: 'h295', date: '2026-02-05', label: 'JAM 22', result: '3397', digits: '3379' },
+    { id: 'h294', date: '2026-02-05', label: 'JAM 21', result: '72809', digits: '02789' },
+    { id: 'h293', date: '2026-02-05', label: 'JAM 19', result: '1922', digits: '1229' },
+    { id: 'h292', date: '2026-02-05', label: 'JAM 16', result: '4933', digits: '3349' },
+    { id: 'h291', date: '2026-02-05', label: 'JAM 15', result: '38828', digits: '23888' },
+    { id: 'h290', date: '2026-02-05', label: 'JAM 13', result: '3300', digits: '0033' },
     { id: 'h289', date: '2026-02-05', label: 'JAM 01', result: '0932', digits: '0239' },
     
     { id: 'h288', date: '2026-02-04', label: 'JAM 23', result: '0900', digits: '0009' },
@@ -25,7 +40,7 @@ export const SYSTEM_BASELINE: BBFSEntry[] = [
     { id: 'h279', date: '2026-02-03', label: 'JAM 22', result: '8593', digits: '3589' },
     { id: 'h278', date: '2026-02-03', label: 'JAM 21', result: '36721', digits: '12367' },
     { id: 'h277', date: '2026-02-03', label: 'JAM 19', result: '3262', digits: '2236' },
-    { id: 'h276', date: '2026-02-03', label: 'JAM 16', result: '0647', digits: '0467' },
+    { id: 'h279a', date: '2026-02-03', label: 'JAM 16', result: '0647', digits: '0467' },
     { id: 'h275', date: '2026-02-03', label: 'JAM 15', result: '67331', digits: '13367' },
     { id: 'h274', date: '2026-02-03', label: 'JAM 13', result: '1139', digits: '1139' },
     { id: 'h273', date: '2026-02-03', label: 'JAM 01', result: '3659', digits: '3569' },
@@ -133,7 +148,7 @@ export const SYSTEM_BASELINE: BBFSEntry[] = [
     { id: 'h184', date: '2026-01-22', label: 'JAM 23', result: '8784', digits: '4788' },
     { id: 'h183', date: '2026-01-22', label: 'JAM 22', result: '2826', digits: '2268' },
     { id: 'h182', date: '2026-01-22', label: 'JAM 21', result: '61352', digits: '12356' },
-    { id: 'h189', date: '2026-01-22', label: 'JAM 19', result: '7461', digits: '1467' },
+    { id: 'h189a', date: '2026-01-22', label: 'JAM 19', result: '7461', digits: '1467' },
     { id: 'h180', date: '2026-01-22', label: 'JAM 16', result: '2553', digits: '2355' },
     { id: 'h179', date: '2026-01-22', label: 'JAM 15', result: '44358', digits: '34458' },
     { id: 'h178', date: '2026-01-22', label: 'JAM 13', result: '3098', digits: '0389' },

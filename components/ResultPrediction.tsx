@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { BBFSEntry } from '../types';
 import { SYSTEM_BASELINE } from '../baseline';
@@ -197,8 +196,13 @@ const generateAllPredictions = (history: BBFSEntry[], slot: string) => {
 
 const ResultPrediction: React.FC = () => {
   const [dbRefreshTrigger, setDbRefreshTrigger] = useState(0);
-  const [viewDate, setViewDate] = useState('2026-02-04');
-  const [activeSlot, setActiveSlot] = useState('22');
+  const [viewDate, setViewDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [activeSlot, setActiveSlot] = useState(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const nextSlot = timeSlots.find(slot => currentHour < parseInt(slot));
+    return nextSlot || timeSlots[timeSlots.length - 1];
+  });
   const [showLog, setShowLog] = useState(false);
   const [logType, setLogType] = useState<'DAY' | 'SUPER'>('DAY');
 
@@ -211,7 +215,7 @@ const ResultPrediction: React.FC = () => {
   const entries = useMemo(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     const db = saved ? JSON.parse(saved) : [];
-    return [...db, ...SYSTEM_BASELINE].sort((a, b) => {
+    return [...(Array.isArray(db) ? db : []), ...SYSTEM_BASELINE].sort((a, b) => {
         const d = new Date(b.date).getTime() - new Date(a.date).getTime();
         return d !== 0 ? d : timeSlots.indexOf(b.label.replace('JAM ','')) - timeSlots.indexOf(a.label.replace('JAM ',''));
     });
@@ -244,18 +248,28 @@ const ResultPrediction: React.FC = () => {
         const preds = generateAllPredictions(hist, target.label.replace('JAM ',''));
         const res = target.result;
         let isSuper = false;
+        const superHitEntries: {model: string, score: number}[] = [];
         
         ['prime', 'momentum', 'shadow', 'chaos', 'hybrid', 'synthesis', 'odx', 'qrx'].forEach(model => {
             const score = checkMatch((preds as any)[model], res);
-            if (score >= 4) { stats[model]['4D']++; isSuper = true; if(score === 5) stats[model]['5D']++; }
+            if (score >= 4) { 
+                stats[model]['4D']++; isSuper = true; 
+                superHitEntries.push({ model: model.toUpperCase(), score });
+                if(score === 5) stats[model]['5D']++; 
+            }
             if (score === 3) stats[model]['3D']++;
             if (score === 2) stats[model]['2D']++;
         });
         const polMatch = checkPoltarMatch(preds.poltar, res);
-        if (polMatch >= 4) { stats.poltar['4D']++; isSuper = true; if(polMatch === 5) stats.poltar['5D']++; }
+        if (polMatch >= 4) { 
+            stats.poltar['4D']++; isSuper = true; 
+            superHitEntries.push({ model: 'POLTAR', score: polMatch });
+            if(polMatch === 5) stats.poltar['5D']++; 
+        }
         if (polMatch === 3) stats.poltar['3D']++;
         if (polMatch === 2) stats.poltar['2D']++;
-        if (isSuper) stats.superHits.push({ date: target.date, slot: target.label, res: res });
+
+        if (isSuper) stats.superHits.push({ date: target.date, slot: target.label, res: res, hits: superHitEntries });
     }
     return stats;
   }, [entries]);
@@ -281,6 +295,63 @@ const ResultPrediction: React.FC = () => {
         return { slot: fullLabel, result: res || '----', hits };
     });
     return dayEntries;
+  }, [viewDate, entries]);
+
+  const digitFrequency = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for(let i = 0; i < 10; i++) counts[i.toString()] = 0;
+
+    const feb2026Start = new Date('2026-02-01').getTime();
+    const feb2026End = new Date('2026-03-01').getTime();
+
+    entries.forEach(entry => {
+        const entryDate = new Date(entry.date).getTime();
+        if (entry.result && entryDate >= feb2026Start && entryDate < feb2026End) {
+            for (const digit of entry.result) {
+                counts[digit]++;
+            }
+        }
+    });
+
+    const stats = Object.entries(counts).map(([digit, count]) => ({ digit, count }));
+    const maxCount = Math.max(...stats.map(s => s.count));
+    const minCount = Math.min(...stats.map(s => s.count));
+
+    return { stats, maxCount, minCount };
+  }, [entries]);
+
+  const dailyDigitTracker = useMemo(() => {
+    const today = new Date(viewDate);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayDateString = yesterday.toISOString().split('T')[0];
+
+    const todayResults = entries
+        .filter(e => e.date === viewDate && e.result)
+        .map(e => e.result)
+        .join('');
+    const todayHits = new Set(todayResults.split(''));
+
+    const yesterdayResults = entries
+        .filter(e => e.date === yesterdayDateString && e.result)
+        .map(e => e.result)
+        .join('');
+    const yesterdayHits = new Set(yesterdayResults.split(''));
+
+    const statuses: ('HIT' | 'OVERDUE' | 'MISSED')[] = [];
+    for (let i = 0; i < 10; i++) {
+        const digit = i.toString();
+        if (todayHits.has(digit)) {
+            statuses.push('HIT');
+        } else {
+            if (!yesterdayHits.has(digit)) {
+                statuses.push('OVERDUE');
+            } else {
+                statuses.push('MISSED');
+            }
+        }
+    }
+    return statuses;
   }, [viewDate, entries]);
 
   const formatNum = (n: number) => n.toString().padStart(2, '0');
@@ -383,17 +454,25 @@ const ResultPrediction: React.FC = () => {
             <div className="bg-black/50 rounded-2xl p-3 max-h-[400px] overflow-y-auto scrollbar-hide space-y-2 border border-white/5 animate-in slide-in-from-top-4 duration-300">
                 {(logType === 'DAY' ? dailyAudit : monthPerformance.superHits.slice(0, 30)).map((h: any, i: number) => (
                     <div key={i} className="flex flex-wrap justify-between items-center py-3 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.01] px-2 rounded-xl transition-all">
-                        <span className="text-white/20 font-black italic uppercase text-[9px] w-14">{h.slot?.replace('JAM ','') || h.slot}</span>
-                        <span className="text-amber-500 font-mono font-black tracking-[0.2em] text-[14px] md:text-[18px]">{h.result || h.res}</span>
-                        <div className="flex flex-wrap gap-1.5 justify-end flex-1 ml-4">
+                        <div className="flex flex-col w-24">
+                            <span className="text-white/60 font-black italic uppercase text-[10px] leading-tight">
+                                {h.slot?.replace('JAM ','') || h.slot}
+                            </span>
+                            <span className="text-white/20 font-bold text-[8px] leading-tight">
+                                {(h.date || viewDate).split('-').reverse().join('/')}
+                            </span>
+                        </div>
+                        <span className="text-amber-500 font-mono font-black tracking-[0.2em] text-[16px] md:text-[22px] flex-1 ml-4">
+                            {h.result || h.res}
+                        </span>
+                        <div className="flex flex-wrap gap-2 justify-end items-center flex-1">
                            {h.hits?.length > 0 ? h.hits.map((hit: any, hi: number) => (
-                               <span key={hi} className={`text-[8px] md:text-[10px] font-black uppercase italic ${LABEL_COLORS[hit.model] || 'text-emerald-500'}`}>
-                                 {hit.model} {hit.score}D{hi < h.hits.length - 1 ? ',' : ''}
+                               <span key={hi} className={`text-[9px] md:text-[11px] font-black uppercase italic tracking-wider whitespace-nowrap ${LABEL_COLORS[hit.model] || 'text-emerald-500'}`}>
+                                 {hit.model} {hit.score}D
                                </span>
                            )) : (
                                <span className="text-white/5 text-[8px] uppercase font-black">NO HIT</span>
                            )}
-                           {logType === 'SUPER' && <span className="text-emerald-500 font-black text-[10px]">4D-WIN</span>}
                         </div>
                     </div>
                 ))}
@@ -440,7 +519,6 @@ const ResultPrediction: React.FC = () => {
              const res = targetEntry?.result;
              const targetDigit = res ? (res.length === 5 ? res[i] : (i > 0 ? res[i-1] : null)) : null;
              
-             // Jangan sembunyikan P1 lagi, tetap tampilkan prediksi untuk antisipasi 5D
              return (
                <div key={lbl} className={`bg-black/40 rounded-xl border py-2 md:py-4 flex flex-col items-center gap-1 transition-all ${targetDigit && predictions.poltar[i]?.includes(targetDigit) ? 'border-rose-500/40 bg-rose-500/5' : 'border-white/5'}`}>
                   <span className={`text-[7px] md:text-[9px] font-black uppercase ${targetDigit && predictions.poltar[i]?.includes(targetDigit) ? 'text-rose-400' : 'text-white/20'}`}>{lbl}</span>
@@ -450,6 +528,37 @@ const ResultPrediction: React.FC = () => {
                </div>
              );
            })}
+        </div>
+      </div>
+
+      <div className="bg-[#0b1018] p-3 md:p-4 rounded-[1.8rem] border border-white/5 space-y-3">
+        <div className="flex items-center gap-2 px-2">
+           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+           <h3 className="text-[9px] font-black uppercase italic tracking-widest text-emerald-400">FREKUENSI DIGIT (FEB 2026)</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-x-4 gap-y-2 p-2">
+          {digitFrequency.stats.map(({ digit, count }) => {
+            const isMax = count === digitFrequency.maxCount && count > 0;
+            const isMin = count === digitFrequency.minCount && count > 0;
+            const barWidth = digitFrequency.maxCount > 0 ? (count / digitFrequency.maxCount) * 100 : 0;
+            return (
+              <div key={digit} className="flex items-center gap-2">
+                <span className={`text-lg font-black font-mono w-4 ${isMax ? 'text-amber-400' : isMin ? 'text-cyan-400' : 'text-white/40'}`}>
+                  {digit}
+                </span>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <div className="bg-white/5 h-2.5 w-full rounded-full overflow-hidden">
+                      <div style={{ width: `${barWidth}%` }} className={`h-full rounded-full transition-all duration-500 ${isMax ? 'bg-amber-500' : isMin ? 'bg-cyan-500' : 'bg-white/20'}`}></div>
+                    </div>
+                  </div>
+                </div>
+                 <span className={`text-xs font-mono font-bold w-6 text-right ${isMax ? 'text-amber-400' : isMin ? 'text-cyan-400' : 'text-white/60'}`}>
+                  {count}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -466,7 +575,22 @@ const ResultPrediction: React.FC = () => {
             <thead>
               <tr className="bg-white/5 text-[7px] md:text-[10px] font-black text-white/30 uppercase tracking-widest border-b border-white/10">
                 <th className="py-2 w-[40px] md:w-[100px] border-r border-white/5 italic bg-black/20">BBFS</th>
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (<th key={num} className="py-2 border-r border-white/5">{num}</th>))}
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num, index) => {
+                    const status = dailyDigitTracker[index];
+                    let colorClass = '';
+                    if (status === 'HIT') {
+                        colorClass = 'text-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]';
+                    } else if (status === 'OVERDUE') {
+                        colorClass = 'text-rose-500 animate-pulse';
+                    } else { // MISSED
+                        colorClass = 'text-rose-500/50';
+                    }
+                    return (
+                        <th key={num} className={`py-2 border-r border-white/5 transition-colors ${colorClass}`}>
+                            {num}
+                        </th>
+                    );
+                })}
                 <th className="py-2 w-[40px] md:w-[100px] border-l border-white/5 italic bg-black/20 text-[6px] md:text-[9px]">JAM/TGL</th>
               </tr>
             </thead>

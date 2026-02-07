@@ -90,7 +90,6 @@ const BBFSCalculator: React.FC = () => {
 
   const getSig = useCallback((s: string) => s.split('').sort().join(''), []);
 
-  // Corrected typo in handleStorageChange reference on line 95
   useEffect(() => {
     const handleStorageChange = () => setDbRefreshTrigger(Date.now());
     window.addEventListener('storage', handleStorageChange);
@@ -108,31 +107,17 @@ const BBFSCalculator: React.FC = () => {
   // THRESHOLD FILTER: Hanya data sejak 1 Februari 2026
   const febThreshold = useMemo(() => new Date('2026-02-01').getTime(), []);
 
-  // EXACT RESULT MATCH (Hanya penandaan DB untuk angka yang PERSIS sama dengan result di database)
-  const historyExactResults = useMemo<Set<string>>(() => {
-    const results = new Set<string>();
-    historyEntries.forEach((entry: BBFSEntry) => {
-      const entryTime = new Date(entry.date).getTime();
-      if (entryTime >= febThreshold && entry.result) {
-        results.add(entry.result);
-        if (entry.result.length === 5) {
-          results.add(entry.result.slice(1)); // 4D
-          results.add(entry.result.slice(2)); // 3D
-          results.add(entry.result.slice(3)); // 2D
-        }
-      }
-    });
-    return results;
-  }, [historyEntries, febThreshold]);
-
-  // Signatures for FILTER ONLY (Tombol ALL/IN DB/FRESH tetap menggunakan signature agar BBFS group terfilter)
+  // Signatures for FILTER & COLORING (Start from Feb 2026)
   const historySignatures = useMemo<Set<string>>(() => {
     const sigs = new Set<string>();
     historyEntries.forEach((entry: BBFSEntry) => {
-      if (new Date(entry.date).getTime() >= febThreshold && entry.result) {
-        // Gunakan result sebagai basis signature filter agar konsisten
-        sigs.add(getSig(entry.result.slice(-4)));
-        if(entry.result.length === 5) sigs.add(getSig(entry.result));
+      const entryTime = new Date(entry.date).getTime();
+      if (entryTime >= febThreshold && entry.result) {
+        const res = entry.result;
+        // Collect signatures for all dimension layers of the result (2D, 3D, 4D, 5D)
+        for (let len = 2; len <= res.length; len++) {
+          sigs.add(getSig(res.slice(-len)));
+        }
       }
     });
     return sigs;
@@ -381,7 +366,7 @@ const BBFSCalculator: React.FC = () => {
          </div>
       </div>
 
-      {/* MATRIX STREAM PANEL - STRICT EXACT MATCHING */}
+      {/* MATRIX STREAM PANEL */}
       <div className="bg-[#05080d] p-5 rounded-[2.5rem] border border-white/10 h-[400px] flex flex-col shadow-2xl relative">
          <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
             <div className="flex items-center gap-3">
@@ -398,13 +383,12 @@ const BBFSCalculator: React.FC = () => {
            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-2 gap-y-4 px-2">
              {resultList.length > 0 ? (
                resultList.map((item, idx) => {
-                 // GANTI LOGIKA: Gunakan Exact Match (Pencocokan Persis)
-                 const isInBuffer = historyExactResults.has(item);
+                 // LOGIC: Use signature matching for IN DB identification (Red color)
+                 const isInBuffer = historySignatures.has(getSig(item));
                  const isCopied = idx < copiedIndex;
                  const setSize = new Set(item.split('')).size;
                  const isTwinPlus = setSize < item.length - 1;
                  
-                 // EXACT MATCH untuk Top Rank (Hanya yang PERSIS sama yang ditandai)
                  const matchedRank = BBFS_TOP_RANKINGS_BASE.find(rank => rank.digits === item);
                  const isTopRank = !!matchedRank;
                  const rankNumber = isTopRank ? BBFS_TOP_RANKINGS_BASE.indexOf(matchedRank!) + 1 : 0;
@@ -412,7 +396,7 @@ const BBFSCalculator: React.FC = () => {
                  return (
                    <div key={idx} className="flex justify-center items-center h-7 md:h-9">
                      <div className={`flex items-stretch w-full h-full rounded-lg border transition-all duration-500 overflow-hidden
-                       ${isTopRank ? 'border-cyan-400 bg-cyan-950/40 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : isInBuffer ? 'border-rose-500/40 bg-rose-950/20' : 'border-white/5 bg-white/5'}
+                       ${isTopRank ? 'border-cyan-400 bg-cyan-950/40 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : isInBuffer ? 'border-red-500/40 bg-red-950/20' : 'border-white/5 bg-white/5'}
                      `}>
                         {isTopRank && (
                           <div className="w-3 md:w-5 flex items-center justify-center font-black text-[8px] md:text-[10px] italic border-r shadow-[inset_-2px_0_5px_rgba(0,0,0,0.2)] bg-cyan-500 text-black border-cyan-400">
@@ -421,9 +405,9 @@ const BBFSCalculator: React.FC = () => {
                         )}
                         <div className="flex-1 flex items-center justify-center relative">
                            {isInBuffer && (
-                             <span className="absolute -top-1 left-0 text-[5px] md:text-[6px] font-black text-rose-500 uppercase tracking-tighter opacity-80">DB</span>
+                             <span className="absolute -top-1 left-0 text-[5px] md:text-[6px] font-black text-red-500 uppercase tracking-tighter opacity-80">DB</span>
                            )}
-                           <span className={`font-mono text-[10px] md:text-[14px] font-black tracking-tight ${isCopied ? 'opacity-20 line-through' : isTopRank ? 'text-white' : isInBuffer ? 'text-rose-500' : isTwinPlus ? 'text-rose-400' : 'text-cyan-400'}`}>
+                           <span className={`font-mono text-[10px] md:text-[14px] font-black tracking-tight ${isCopied ? 'opacity-20 line-through' : isInBuffer ? 'text-red-500' : isTopRank ? 'text-white' : isTwinPlus ? 'text-rose-400' : 'text-cyan-400'}`}>
                               {item}
                            </span>
                         </div>
@@ -476,10 +460,6 @@ const BBFSCalculator: React.FC = () => {
             </thead>
             <tbody>
               {dimensions.map(dim => {
-                const sQty = filteredResultsByDim[dim].single.length;
-                const tQty = filteredResultsByDim[dim].twin.length;
-                const tpQty = filteredResultsByDim[dim].twinPlus.length;
-                
                 const sF = getCost(dim, 'SGL', 'full');
                 const sD = getCost(dim, 'SGL', 'diskon');
                 const sS = getCost(dim, 'SGL', 'super');
