@@ -34,11 +34,7 @@ const BBFS_TOP_RANKINGS = [
   { digits: "3457", qty: 4 }, { digits: "5788", qty: 4 }
 ];
 
-// LOGIKA EXACT MATCH: Tidak menyortir, hanya membandingkan string langsung.
-const checkStrictMatch = (pattern: string, dbDigits: string) => {
-  if (!dbDigits || !pattern) return false;
-  return pattern === dbDigits;
-};
+const checkStrictMatch = (pattern: string, dbDigits: string) => pattern === dbDigits;
 
 const HistoricalArchive: React.FC = () => {
   const [dbRefreshTrigger, setDbRefreshTrigger] = useState(0);
@@ -65,62 +61,78 @@ const HistoricalArchive: React.FC = () => {
     } catch (e) { return SYSTEM_BASELINE; }
   }, [dbRefreshTrigger]);
 
-  // THRESHOLD: Mulai 1 Februari 2026
-  const febThreshold = useMemo(() => new Date('2026-02-01').getTime(), []);
+  // LOGIKA AWAL BULAN TERBARU (Dinamis)
+  const currentMonthStart = useMemo(() => {
+    const now = new Date();
+    // Mendapatkan tanggal 1 di bulan yang sama dengan hari ini
+    return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  }, [dbEntries]);
 
-  // Filter data histori khusus untuk penentuan status OUT Top Rank
-  const febEntries = useMemo(() => {
-    return dbEntries.filter(e => new Date(e.date).getTime() >= febThreshold);
-  }, [dbEntries, febThreshold]);
+  const monthName = useMemo(() => {
+    return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
+  }, []);
 
+  // Pelacakan Duplikat yang di-reset per bulan
   const duplicateTracking = useMemo(() => {
-    const sigCounts: Record<string, { date: string, slot: string }[]> = {};
-    dbEntries.forEach(e => {
-      if (!e.digits) return;
-      const sig = e.digits; // Gunakan literal digits untuk tracking duplikat strict
-      if (!sigCounts[sig]) sigCounts[sig] = [];
-      sigCounts[sig].push({ date: e.date, slot: e.label });
-    });
     const result: Record<string, number> = {};
-    Object.entries(sigCounts).forEach(([_, occurrences]) => {
-      if (occurrences.length > 1) {
-        const sortedOccurrences = [...occurrences].sort((a: any, b: any) => {
-          const da = new Date(a.date as string).getTime();
-          const db = new Date(b.date as string).getTime();
-          if (da !== db) return da - db;
-          return timeSlots.indexOf(a.slot) - timeSlots.indexOf(b.slot);
-        });
-        sortedOccurrences.forEach((occ, idx) => {
-          result[`${occ.date}|${occ.slot}`] = idx + 1;
-        });
-      }
+    const monthGroups: Record<string, BBFSEntry[]> = {};
+
+    // 1. Kelompokkan data berdasarkan Bulan-Tahun (e.g. "2026-02")
+    dbEntries.forEach(e => {
+      const mKey = e.date.substring(0, 7); // Mengambil "YYYY-MM"
+      if (!monthGroups[mKey]) monthGroups[mKey] = [];
+      monthGroups[mKey].push(e);
+    });
+
+    // 2. Hitung duplikat secara mandiri di setiap grup bulan
+    Object.keys(monthGroups).forEach(mKey => {
+      const sigCounts: Record<string, { date: string, slot: string }[]> = {};
+      
+      monthGroups[mKey].forEach(e => {
+        if (!e.digits) return;
+        const sig = e.digits;
+        if (!sigCounts[sig]) sigCounts[sig] = [];
+        sigCounts[sig].push({ date: e.date, slot: e.label });
+      });
+
+      Object.entries(sigCounts).forEach(([_, occurrences]) => {
+        if (occurrences.length > 1) {
+          const sorted = [...occurrences].sort((a, b) => {
+            const da = new Date(a.date).getTime();
+            const db = new Date(b.date).getTime();
+            if (da !== db) return da - db;
+            return timeSlots.indexOf(a.slot) - timeSlots.indexOf(b.slot);
+          });
+          sorted.forEach((occ, idx) => {
+            result[`${occ.date}|${occ.slot}`] = idx + 1;
+          });
+        }
+      });
     });
     return result;
   }, [dbEntries]);
 
-  // Analytics berdasarkan data sejak 1-Feb-2026
+  // Analytics Panel Atas: Hanya berdasarkan data Bulan Berjalan
   const topRankAnalytics = useMemo(() => {
+    const currentMonthEntries = dbEntries.filter(e => new Date(e.date).getTime() >= currentMonthStart);
     return BBFS_TOP_RANKINGS.map((item, index) => {
-      const matchedEntry = febEntries.find(e => checkStrictMatch(item.digits, e.digits));
+      const matchedEntry = currentMonthEntries.find(e => checkStrictMatch(item.digits, e.digits));
       return { rank: index + 1, digits: item.digits, qty: item.qty, isOut: !!matchedEntry };
     });
-  }, [febEntries]);
+  }, [dbEntries, currentMonthStart]);
 
-  // Menandai posisi di Grid Archive (tetap menunjukkan semua histori tapi menggunakan logic exact match)
+  // Penanda Visual Grid: Tetap menampilkan semua rank di seluruh histori
   const topRankMatches = useMemo(() => {
     const matches: Record<string, number> = {};
     dbEntries.forEach(e => {
       if (!e.digits) return;
       const foundIdx = BBFS_TOP_RANKINGS.findIndex(rank => checkStrictMatch(rank.digits, e.digits));
       if (foundIdx !== -1) {
-        // Hanya beri label merah jika tanggal >= 1 Feb 2026
-        if (new Date(e.date).getTime() >= febThreshold) {
-            matches[`${e.date}|${e.label}`] = foundIdx + 1;
-        }
+        matches[`${e.date}|${e.label}`] = foundIdx + 1;
       }
     });
     return matches;
-  }, [dbEntries, febThreshold]);
+  }, [dbEntries]);
 
   const historyGridData = useMemo(() => {
     const dates = Array.from(new Set(dbEntries.map(e => e.date)))
@@ -139,18 +151,32 @@ const HistoricalArchive: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 pb-24 px-2">
-      <div className="bg-[#0b1018] border border-white/5 rounded-3xl p-6 shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
+      {/* SUMMARY PANEL - HANYA BULAN BERJALAN */}
+      <div className="bg-[#0b1018] border border-white/5 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+           <svg className="w-32 h-32 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>
+        </div>
+        <div className="flex justify-between items-center mb-6 relative z-10">
           <div className="flex flex-col">
             <h4 className="text-xl font-black text-white italic">TOP RANK <span className="text-cyan-400">STATUS (STRICT)</span></h4>
-            <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mt-1">DATA MONITORING SINCE 01-FEB-2026</span>
+            <div className="flex items-center gap-2 mt-1">
+               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+               <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">PERIODE AKTIF: {monthName.toUpperCase()}</span>
+            </div>
           </div>
-          <div className="flex gap-4">
-             <div className="text-center"><div className="text-xl font-black text-rose-500">{outCount}</div><div className="text-[8px] opacity-40 uppercase font-black tracking-widest">OUT</div></div>
-             <div className="text-center"><div className="text-xl font-black text-cyan-400">{BBFS_TOP_RANKINGS.length - outCount}</div><div className="text-[8px] opacity-40 uppercase font-black tracking-widest">WAIT</div></div>
+          <div className="flex gap-4 bg-black/40 px-6 py-2 rounded-2xl border border-white/5">
+             <div className="text-center">
+                <div className="text-2xl font-black text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]">{outCount}</div>
+                <div className="text-[8px] opacity-40 uppercase font-black tracking-widest">OUT BULAN INI</div>
+             </div>
+             <div className="w-[1px] h-8 bg-white/10 mx-2"></div>
+             <div className="text-center">
+                <div className="text-2xl font-black text-cyan-400">{BBFS_TOP_RANKINGS.length - outCount}</div>
+                <div className="text-[8px] opacity-40 uppercase font-black tracking-widest">WAITING</div>
+             </div>
           </div>
         </div>
-        <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-12 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-12 gap-2 relative z-10">
            {topRankAnalytics.map(item => (
              <div key={item.rank} className={`flex items-center justify-between p-1 rounded-lg border text-[10px] font-black transition-all duration-300 ${item.isOut ? 'border-rose-500/50 bg-rose-500/10 text-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]' : 'border-white/5 bg-white/5 text-cyan-400'}`}>
                <span className="opacity-40">{item.rank}</span>
@@ -159,10 +185,15 @@ const HistoricalArchive: React.FC = () => {
            ))}
         </div>
       </div>
+
+      {/* ARCHIVE GRID - VISUAL HISTORI TETAP DIPERTAHANKAN */}
       <div className="bg-[#0b1018] rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
          <div className="p-4 bg-white/5 flex justify-between items-center">
-           <h2 className="text-lg font-black text-white uppercase italic">Archive <span className="text-amber-500">Grid</span></h2>
-           <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">Feb-2026 Exact Match Active</span>
+           <h2 className="text-lg font-black text-white uppercase italic">Archive <span className="text-amber-500">Grid Monitor</span></h2>
+           <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-rose-500 rounded-sm"></div><span className="text-[8px] font-black text-white/40 uppercase tracking-widest">RANK MATCH</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-amber-500/40 rounded-sm"></div><span className="text-[8px] font-black text-white/40 uppercase tracking-widest">MONTHLY DUP</span></div>
+           </div>
          </div>
          <div className="overflow-x-auto">
             <table className="w-full text-center border-collapse table-fixed min-w-[1000px]">
@@ -174,10 +205,12 @@ const HistoricalArchive: React.FC = () => {
                </thead>
                <tbody className="divide-y divide-white/5">
                   {historyGridData.map((day, di) => {
-                    const isWithinFeb = new Date(day.date).getTime() >= febThreshold;
+                    const entryTime = new Date(day.date).getTime();
+                    const isWithinCurrentMonth = entryTime >= currentMonthStart;
+                    
                     return (
-                      <tr key={di} className={`hover:bg-white/[0.02] h-12 ${!isWithinFeb ? 'opacity-40' : ''}`}>
-                        <td className="font-black text-white/40 italic border-r border-white/5">{day.date}</td>
+                      <tr key={di} className={`hover:bg-white/[0.02] h-12 transition-colors ${!isWithinCurrentMonth ? 'opacity-60 grayscale-[0.2]' : ''}`}>
+                        <td className="font-black text-white/40 italic border-r border-white/5 text-[11px]">{day.date}</td>
                         {timeSlots.map(s => {
                           const cellId = `${day.date}|${s}`;
                           const trIdx = topRankMatches[cellId];
@@ -186,10 +219,20 @@ const HistoricalArchive: React.FC = () => {
                           return (
                             <td key={s} className="px-1 border-r border-white/5">
                               {digits ? (
-                                <div className={`relative h-10 rounded-lg flex flex-col items-center justify-center border ${trIdx ? 'border-rose-500 bg-rose-950/40' : dup ? 'border-amber-500/40 bg-amber-500/5' : 'border-white/5 bg-white/5'}`}>
-                                  {trIdx && <span className="absolute top-0 left-0 right-0 text-[8px] bg-rose-500 text-white font-black italic">#{trIdx}</span>}
-                                  <span className={`text-[15px] font-mono font-black ${trIdx ? 'text-white' : dup ? 'text-amber-500' : 'text-cyan-400'}`}>{digits}</span>
-                                  {dup && <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-500">!{dup}</span>}
+                                <div className={`relative h-10 rounded-lg flex flex-col items-center justify-center border transition-all duration-300 ${trIdx ? 'border-rose-500 bg-rose-950/40 shadow-[inset_0_0_10px_rgba(244,63,94,0.1)]' : dup ? 'border-amber-500/40 bg-amber-500/5' : 'border-white/5 bg-white/5'}`}>
+                                  {trIdx && (
+                                    <span className="absolute top-0 left-0 right-0 text-[8px] bg-rose-500 text-white font-black italic rounded-t-[3px]">
+                                      #{trIdx}
+                                    </span>
+                                  )}
+                                  <span className={`text-[15px] font-mono font-black ${trIdx ? 'text-white' : dup ? 'text-amber-500' : 'text-cyan-400'}`}>
+                                    {digits}
+                                  </span>
+                                  {dup && (
+                                    <span className="absolute bottom-0 right-0 text-[8px] font-black text-amber-500 px-1 bg-amber-500/10 rounded-tl-md">
+                                      !{dup}
+                                    </span>
+                                  )}
                                 </div>
                               ) : <span className="opacity-5">--</span>}
                             </td>

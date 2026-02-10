@@ -1,6 +1,6 @@
 
 export type Dimension = '2D' | '3D' | '4D' | '5D';
-export type ViewType = 'BBFS' | 'DATA' | 'ARCHIVE' | 'MATRIX' | 'PREDICTION';
+export type ViewType = 'BBFS' | 'DATA' | 'ARCHIVE' | 'MATRIX_BBFS' | 'MATRIX_RESULT' | 'PREDICTION';
 
 export interface BBFSEntry {
   id: string;

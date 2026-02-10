@@ -1,13 +1,13 @@
-const CACHE_NAME = 'bebiaks-pro-cache-v8';
+
+const CACHE_NAME = 'bebiaks-pro-cache-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.webmanifest',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap',
-  'https://img.icons8.com/fluency/144/pirate.png',
-  'https://img.icons8.com/fluency/192/pirate.png',
-  'https://img.icons8.com/fluency/512/pirate.png'
+  'https://cdn-icons-png.flaticon.com/512/2150/2150150.png',
+  'https://cdn-icons-png.flaticon.com/192/2150/2150150.png'
 ];
 
 self.addEventListener('install', (event) => {

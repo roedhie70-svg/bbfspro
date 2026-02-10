@@ -103,7 +103,7 @@ const DataBBFS: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[11px] md:text-sm">
            <div className="space-y-1.5 border-l-2 border-cyan-500/30 pl-4 py-1">
-              <p className="font-black text-white text-[13px] mb-2">Sync Terakhir: 04-Feb-2026</p>
+              <p className="font-black text-white text-[13px] mb-2">Sync Terakhir: 09-Feb-2026 19:00</p>
               <p className="text-white/40 italic">Data histori sistem sinkron dengan database global BebiaksPro.</p>
            </div>
            <div className="flex items-center justify-end">

@@ -20,8 +20,10 @@ const App: React.FC = () => {
         return <DataBBFS />;
       case 'ARCHIVE':
         return <HistoricalArchive />;
-      case 'MATRIX':
-        return <MatrixTracking />;
+      case 'MATRIX_BBFS':
+        return <MatrixTracking mode="BBFS" />;
+      case 'MATRIX_RESULT':
+        return <MatrixTracking mode="RESULT" />;
       case 'PREDICTION':
         return <ResultPrediction />;
       default:
@@ -38,7 +40,7 @@ const App: React.FC = () => {
       
       <TopMenu currentView={currentView} onNavigate={setCurrentView} />
 
-      <main className="w-full max-w-[1600px] z-10 relative">
+      <main className="w-full max-w-[1600px] z-10 relative pt-16 md:pt-20">
         {renderView()}
       </main>
 

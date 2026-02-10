@@ -276,6 +276,9 @@ const BBFSCalculator: React.FC = () => {
   };
 
   const getCost = (dim: Dimension, mode: 'SGL' | 'TWN' | 'TWN+', type: keyof PriceDetail) => {
+    // FIX: Hanya hitung jika dimensi dipilih di selectedDims
+    if (!selectedDims.includes(dim)) return "0.000";
+
     const qty = mode === 'SGL' ? filteredResultsByDim[dim].single.length 
               : mode === 'TWN' ? filteredResultsByDim[dim].twin.length 
               : filteredResultsByDim[dim].twinPlus.length;
@@ -480,6 +483,9 @@ const BBFSCalculator: React.FC = () => {
                 const totS = (parseFloat(sS) + parseFloat(tS) + parseFloat(tpS)).toFixed(3);
                 const totSum = (parseFloat(sSum) + parseFloat(tSum) + parseFloat(tpSum)).toFixed(3);
 
+                // FIX: Sembunyikan dimensi yang tidak dipilih agar tidak membingungkan
+                if (!selectedDims.includes(dim)) return null;
+
                 return (
                   <React.Fragment key={dim}>
                     <tr className="border-b border-white/[0.03] group">
@@ -526,7 +532,8 @@ const BBFSCalculator: React.FC = () => {
           <h3 className="text-[10px] font-black text-white/80 uppercase italic tracking-widest leading-none">PRICING MATRIX x 1000</h3>
         </div>
         <div className="space-y-6">
-          {dimensions.slice(1).map(dim => (
+          {/* FIX: Tampilkan input harga hanya untuk dimensi yang dipilih */}
+          {dimensions.filter(d => selectedDims.includes(d)).map(dim => (
             <div key={dim} className="space-y-2">
               <div className="grid grid-cols-12 items-center gap-3">
                  <div className="col-span-1 text-[16px] font-black italic text-white/20">{dim}</div>
@@ -559,6 +566,9 @@ const BBFSCalculator: React.FC = () => {
               </div>
             </div>
           ))}
+          {selectedDims.length === 0 && (
+             <div className="text-center py-4 text-white/10 text-[10px] uppercase font-black tracking-widest italic">Pilih Dimensi untuk Input Harga</div>
+          )}
         </div>
       </div>
 
